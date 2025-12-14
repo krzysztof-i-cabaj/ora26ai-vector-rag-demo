@@ -28,6 +28,8 @@ The goal was to prove that you don't need a separate Vector Database to build in
 
 👉 \*\*\[Phase 1 - LAUNCH LIVE DEMO (GitHub Pages)](https://krzysztof-i-cabaj.github.io/ora26ai-vector-rag-demo/v1\_pilot/index.html)\*\* 👈
 
+
+
 👉 \*\*\[Phase 2 - LAUNCH LIVE DEMO (GitHub Pages)](https://krzysztof-i-cabaj.github.io/ora26ai-vector-rag-demo/v2\_enriched/index.html)\*\* 👈
 
 
