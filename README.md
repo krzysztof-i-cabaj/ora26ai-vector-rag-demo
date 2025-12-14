@@ -2,11 +2,11 @@
 
 
 
-!\[Oracle Database](https://img.shields.io/badge/Oracle-Database%2023ai-f80000?logo=oracle\&logoColor=white)
+\[Oracle Database](https://img.shields.io/badge/Oracle-Database%2023ai-f80000?logo=oracle\&logoColor=white)
 
-!\[Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python\&logoColor=white)
+\[Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python\&logoColor=white)
 
-!\[Status](https://img.shields.io/badge/Status-Completed-success)
+\[Status](https://img.shields.io/badge/Status-Completed-success)
 
 
 
@@ -169,8 +169,6 @@ We queried the database with: \*"Something is burning and very hot"\* without us
 
 
 👤 Author
-
-
 
 Krzysztof Cabaj (KCB) - Oracle DBA \& AI Enthusiast
 
