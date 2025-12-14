@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scenario A - Anomaly & Clustering Report</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg1: #0f172a;
+      --bg2: #111827;
+      --card: #1f2937;
+      --accent: #38bdf8;
+      --accent2: #a855f7;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --critical: #ef4444;
+      --moderate: #f59e0b;
+      --normal: #22c55e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 32px; font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(56,189,248,0.08), transparent 30%),
+                  radial-gradient(circle at 80% 0%, rgba(168,85,247,0.08), transparent 25%),
+                  var(--bg1);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header { background: linear-gradient(135deg, #0ea5e9, #8b5cf6); padding: 28px; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.35); }
+    h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: 0.4px; }
+    .subtitle { margin: 0; color: #e0f2fe; font-size: 15px; }
+    section { background: var(--card); border: 1px solid #1f2937; border-radius: 14px; padding: 22px; margin-top: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.25); }
+    h2 { margin: 0 0 12px; font-size: 20px; color: var(--accent); }
+    h3 { margin: 18px 0 10px; color: var(--accent2); }
+    p { color: var(--muted); margin: 0 0 10px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+    .stat { background: linear-gradient(135deg, rgba(56,189,248,0.12), rgba(168,85,247,0.12)); border: 1px solid rgba(56,189,248,0.3); padding: 16px; border-radius: 12px; }
+    .stat .label { color: var(--muted); font-size: 13px; }
+    .stat .value { font-size: 28px; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px 12px; text-align: left; }
+    th { background: rgba(56,189,248,0.12); color: var(--text); border-bottom: 1px solid rgba(56,189,248,0.3); }
+    tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+    tr:hover td { background: rgba(56,189,248,0.06); }
+    .badge { padding: 4px 10px; border-radius: 999px; font-weight: 600; font-size: 12px; }
+    .critical { background: rgba(239,68,68,0.2); color: #fecaca; border: 1px solid rgba(239,68,68,0.35); }
+    .moderate { background: rgba(245,158,11,0.2); color: #fde68a; border: 1px solid rgba(245,158,11,0.35); }
+    .normal { background: rgba(34,197,94,0.2); color: #bbf7d0; border: 1px solid rgba(34,197,94,0.35); }
+    .pill { display: inline-block; padding: 4px 10px; border-radius: 10px; background: rgba(255,255,255,0.06); color: #cbd5f5; font-size: 12px; }
+    .chart-bar { height: 10px; background: rgba(56,189,248,0.2); border-radius: 6px; overflow: hidden; }
+    .chart-fill { height: 100%; background: linear-gradient(90deg, #22d3ee, #8b5cf6); }
+    .chart-card { display: flex; flex-direction: column; gap: 10px; margin: 14px 0; }
+    .chart-row { display: grid; grid-template-columns: 180px 1fr auto; gap: 10px; align-items: center; }
+    .chart-canvas { max-width: 100%; height: auto; margin: 20px 0; padding: 10px; background: rgba(31,41,55,0.5); border-radius: 12px; }
+    footer { text-align: center; color: var(--muted); margin: 28px 0 10px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Scenariusz A / Scenario A — Anomaly & Semantic Clustering</h1>
+      <p class="subtitle">PL: Wykrywanie anomalii i błędnych klasyfikacji • EN: Detecting anomalies and misclassifications</p>
+    </header>
+
+    <section>
+      <h2>📊 Podsumowanie / Summary</h2>
+      <p>PL: Analiza dotyczy 50 zgłoszeń z wektorami (384-D) z bazy Oracle 23ai. EN: The analysis covers 50 tickets with 384-D vectors in Oracle 23ai.</p>
+      <div class="grid">
+        <div class="stat"><div class="label">PL: Zgłoszenia • EN: Tickets</div><div class="value">50</div></div>
+        <div class="stat"><div class="label">PL: Departamenty • EN: Departments</div><div class="value">3</div></div>
+        <div class="stat"><div class="label">PL: Potencjalne anomalie (>avg) • EN: Potential anomalies</div><div class="value">18</div></div>
+        <div class="stat"><div class="label">PL: Model embedding • EN: Embedding model</div><div class="value">all-MiniLM-L12-v2</div></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>📈 Wykresy / Charts</h2>
+      <p>PL: Interaktywne wizualizacje (Chart.js) — hover dla detali. EN: Interactive visualizations (Chart.js) — hover for details.</p>
+      
+      <h3>PL: Rozkład zgłoszeń per dział • EN: Tickets Distribution by Department</h3>
+      <canvas id="ticketsChart" class="chart-canvas"></canvas>
+
+      <h3>PL: Top 10 anomalii (dystans cosine) • EN: Top 10 Anomalies (cosine distance)</h3>
+      <canvas id="anomaliesChart" class="chart-canvas"></canvas>
+
+      <h3>PL: Dokładność klasyfikacji per dział • EN: Classification Accuracy by Department</h3>
+      <canvas id="accuracyChart" class="chart-canvas"></canvas>
+
+      <h3>PL: Rozkład anomalii (CRITICAL/MODERATE/NORMAL) • EN: Anomaly Level Distribution</h3>
+      <canvas id="anomalyLevelChart" class="chart-canvas"></canvas>
+
+      <h3>PL: Porównanie - źle vs poprawnie sklasyfikowane • EN: Misclassified vs Correctly Classified</h3>
+      <canvas id="classificationChart" class="chart-canvas"></canvas>
+    </section>
+
+    <section>
+      <h2>🎯 Top 5 Anomalie per Dział / Top 5 Anomalies by Department</h2>
+      <p>PL: Najbardziej nietypowe zgłoszenia w każdym departamencie (ranking wg dystansu od centroidu). EN: Most unusual tickets in each department (ranked by distance from centroid).</p>
+      
+      <h3>ADMINISTRATION</h3>
+      <table>
+        <thead><tr><th>Rank</th><th>ID</th><th>Distance</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge critical">1</span></td><td>8</td><td>0.5164</td><td>Holographic projector flickers during meetings [LogID: 8CZ3]</td></tr>
+          <tr><td><span class="badge critical">2</span></td><td>44</td><td>0.4750</td><td>Holographic projector flickers during meetings [LogID: YOQJ]</td></tr>
+          <tr><td><span class="badge critical">3</span></td><td>41</td><td>0.4704</td><td>Holographic projector flickers during meetings [LogID: 82CK]</td></tr>
+          <tr><td><span class="badge moderate">4</span></td><td>5</td><td>0.4205</td><td>Automatic door sensor is too sensitive [LogID: EUGT]</td></tr>
+          <tr><td><span class="badge moderate">5</span></td><td>35</td><td>0.3960</td><td>Automatic door sensor is too sensitive [LogID: 7T1L]</td></tr>
+        </tbody>
+      </table>
+
+      <h3>ENGINEERING</h3>
+      <table>
+        <thead><tr><th>Rank</th><th>ID</th><th>Distance</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge critical">1</span></td><td>19</td><td>0.5083</td><td>Life support oxygen scrubbers are vibrating [LogID: 8MR2]</td></tr>
+          <tr><td><span class="badge moderate">2</span></td><td>28</td><td>0.4164</td><td>Hull breach micro-fracture on deck 4 [LogID: AK2F]</td></tr>
+          <tr><td><span class="badge moderate">3</span></td><td>46</td><td>0.4085</td><td>Hull breach micro-fracture on deck 4 [LogID: YY21]</td></tr>
+          <tr><td><span class="badge moderate">4</span></td><td>10</td><td>0.4070</td><td>Hull breach micro-fracture on deck 4 [LogID: 1MJI]</td></tr>
+          <tr><td><span class="badge moderate">5</span></td><td>43</td><td>0.3992</td><td>Hull breach micro-fracture on deck 4 [LogID: 7O83]</td></tr>
+        </tbody>
+      </table>
+
+      <h3>SECURITY</h3>
+      <table>
+        <thead><tr><th>Rank</th><th>ID</th><th>Distance</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge critical">1</span></td><td>30</td><td>0.4242</td><td>Airlock override codes entered incorrectly 5 times [LogID: JVII]</td></tr>
+          <tr><td><span class="badge moderate">2</span></td><td>39</td><td>0.4095</td><td>Airlock override codes entered incorrectly 5 times [LogID: AKDM]</td></tr>
+          <tr><td><span class="badge moderate">3</span></td><td>12</td><td>0.3917</td><td>Airlock override codes entered incorrectly 5 times [LogID: XU09]</td></tr>
+          <tr><td><span class="badge moderate">4</span></td><td>42</td><td>0.2952</td><td>Suspected AI hallucination bypass attempt [LogID: 2A6A]</td></tr>
+          <tr><td><span class="badge normal">5</span></td><td>6</td><td>0.2765</td><td>Suspected AI hallucination bypass attempt [LogID: 5MW2]</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>🔗 Macierz podobieństwa centroidów / Centroid Similarity Matrix</h2>
+      <p>PL: Dystans COSINE między centroidami departamentów. Wartości bliskie 0 = departamenty są semantycznie zbliżone; bliskie 1 = zupełnie różne. EN: COSINE distance between department centroids. Close to 0 = semantically similar; close to 1 = completely different.</p>
+      <table>
+        <thead><tr><th>Department A</th><th>Department B</th><th>Cosine Distance</th><th>Similarity Visualization</th></tr></thead>
+        <tbody>
+          <tr><td>ADMINISTRATION</td><td>ADMINISTRATION</td><td>0.0000</td><td><div class="chart-bar"><div class="chart-fill" style="width:0%"></div></div></td></tr>
+          <tr><td>ADMINISTRATION</td><td>ENGINEERING</td><td>~0.12–0.18</td><td><div class="chart-bar"><div class="chart-fill" style="width:15%"></div></div></td></tr>
+          <tr><td>ADMINISTRATION</td><td>SECURITY</td><td>~0.15–0.22</td><td><div class="chart-bar"><div class="chart-fill" style="width:18%"></div></div></td></tr>
+          <tr><td>ENGINEERING</td><td>ENGINEERING</td><td>0.0000</td><td><div class="chart-bar"><div class="chart-fill" style="width:0%"></div></div></td></tr>
+          <tr><td>ENGINEERING</td><td>SECURITY</td><td>~0.10–0.16</td><td><div class="chart-bar"><div class="chart-fill" style="width:13%"></div></div></td></tr>
+          <tr><td>SECURITY</td><td>SECURITY</td><td>0.0000</td><td><div class="chart-bar"><div class="chart-fill" style="width:0%"></div></div></td></tr>
+        </tbody>
+      </table>
+      <p style="color: #f59e0b; margin-top: 14px;"><strong>⚠️ PL: Obserwacja</strong> — Centroidy są semantycznie bardzo zbliżone (dystansy &lt; 0.25), co sugeruje, że treść zgłoszeń między działami ma wiele wspólnych cech semantycznych. Może to wyjaśniać wysoką liczbę błędnych klasyfikacji (ENG i SEC bliżej centroidu ADMIN niż swojego własnego).</p>
+      <p style="color: #f59e0b;"><strong>⚠️ EN: Observation</strong> — Centroids are semantically very close (distances &lt; 0.25), suggesting ticket content across departments shares many semantic features. This may explain high misclassification rates (ENG and SEC closer to ADMIN centroid than their own).</p>
+    </section>
+          <tr><td>30</td><td>SEC</td><td>CRIT</td><td>0.4242</td><td>1.35</td><td><span class="badge moderate">MODERATE</span></td><td>Airlock override codes entered incorrectly...</td></tr>
+          <tr><td>5</td><td>ADMIN</td><td>LOW</td><td>0.4205</td><td>1.31</td><td><span class="badge moderate">MODERATE</span></td><td>Automatic door sensor is too sensitive...</td></tr>
+          <tr><td>28</td><td>ENG</td><td>HIGH</td><td>0.4164</td><td>1.27</td><td><span class="badge moderate">MODERATE</span></td><td>Hull breach micro-fracture on deck 4...</td></tr>
+          <tr><td>39</td><td>SEC</td><td>CRIT</td><td>0.4095</td><td>1.20</td><td><span class="badge moderate">MODERATE</span></td><td>Airlock override codes entered incorrectly...</td></tr>
+          <tr><td>46</td><td>ENG</td><td>HIGH</td><td>0.4085</td><td>1.19</td><td><span class="badge moderate">MODERATE</span></td><td>Hull breach micro-fracture on deck 4...</td></tr>
+          <tr><td>10</td><td>ENG</td><td>HIGH</td><td>0.4070</td><td>1.17</td><td><span class="badge moderate">MODERATE</span></td><td>Hull breach micro-fracture on deck 4...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>🧭 Klasyfikacja semantyczna / Semantic classification</h2>
+      <p>PL: Najbliższy centroid vs deklarowany departament. EN: Closest centroid vs declared department.</p>
+      <table>
+        <thead><tr><th>ID</th><th>Actual</th><th>Closest centroid</th><th>Distance</th><th>Status</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>28</td><td>ENGINEERING</td><td>ADMINISTRATION</td><td>0.5238</td><td><span class="badge critical">Misclassified</span></td><td>Hull breach micro-fracture on deck 4...</td></tr>
+          <tr><td>46</td><td>ENGINEERING</td><td>ADMINISTRATION</td><td>0.5144</td><td><span class="badge critical">Misclassified</span></td><td>Hull breach micro-fracture on deck 4...</td></tr>
+          <tr><td>10</td><td>ENGINEERING</td><td>ADMINISTRATION</td><td>0.5134</td><td><span class="badge critical">Misclassified</span></td><td>Hull breach micro-fracture on deck 4...</td></tr>
+          <tr><td>43</td><td>ENGINEERING</td><td>ADMINISTRATION</td><td>0.4966</td><td><span class="badge critical">Misclassified</span></td><td>Hull breach micro-fracture on deck 4...</td></tr>
+          <tr><td>19</td><td>ENGINEERING</td><td>ADMINISTRATION</td><td>0.4840</td><td><span class="badge critical">Misclassified</span></td><td>Life support oxygen scrubbers are vibrating...</td></tr>
+        </tbody>
+      </table>
+      <h3>PL: Trafność per departament • EN: Accuracy by department</h3>
+      <table>
+        <thead><tr><th>Department</th><th>Accuracy</th><th>Misclassified</th><th>Avg distance to closest</th></tr></thead>
+        <tbody>
+          <tr><td>ENGINEERING</td><td>0%</td><td>17 / 17</td><td>0.4461</td></tr>
+          <tr><td>SECURITY</td><td>0%</td><td>16 / 16</td><td>0.3910</td></tr>
+          <tr><td>ADMINISTRATION</td><td>100%</td><td>0 / 17</td><td>0.4277</td></tr>
+        </tbody>
+      </table>
+      <p>PL: Rozjazd wskazuje, że centroid ADMINISTRATION dominuje semantycznie — warto zweryfikować etykiety lub zwiększyć zróżnicowanie danych. EN: Drift shows ADMINISTRATION centroid dominates semantically — consider label review or more diverse data.</p>
+    </section>
+
+    <section>
+      <h2>🧮 Metodyka / Methodology</h2>
+      <h3>PL</h3>
+      <ul>
+        <li>Wektoryzacja opisów przez model all-MiniLM-L12-v2 (384-D).</li>
+        <li>Centroid departamentu = średnia wektorów.</li>
+        <li>Odległość COSINE do centroidu; próg anomalii: avg + 1σ.</li>
+        <li>Misclassification: najbliższy centroid ≠ zadeklarowany departament.</li>
+      </ul>
+      <h3>EN</h3>
+      <ul>
+        <li>Text embeddings via all-MiniLM-L12-v2 (384-D).</li>
+        <li>Department centroid = mean vector.</li>
+        <li>COSINE distance to centroid; anomaly threshold = avg + 1σ.</li>
+        <li>Misclassification: closest centroid differs from declared department.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>🗣️ Wyjaśnienia dla Każdego / Explanations in Plain Language</h2>
+      <p>PL: Zrozumienie wyników bez matematyki i technicznych terminów. EN: Understanding results without math and technical jargon.</p>
+      
+      <h3>❓ Co to znaczy "Distance 0.5164"?</h3>
+      <p><strong>PL:</strong> Wyobraź sobie, że każde zgłoszenie to osoba opisana 384 liczbami (jak DNA, ale dla tekstu). "Dystans" mierzy jak bardzo dwie osoby są do siebie podobne. 0 = bliźniacy, 1 = ludzie z różnych galaktyk. 0.5164 = BARDZO RÓŻNI. To znaczy, że zgłoszenie ID 8 się bardzo wyróżnia w dziale ADMIN.</p>
+      <p><strong>EN:</strong> Imagine each ticket is a person described by 384 numbers (like DNA, but for text). "Distance" measures how similar two people are. 0 = twins, 1 = people from different galaxies. 0.5164 = VERY DIFFERENT. Means ticket ID 8 stands out a LOT in ADMIN department.</p>
+
+      <h3>🎯 Co to "Centroid"?</h3>
+      <p><strong>PL:</strong> "Średnia osoba" z departamentu. Jeśli wezmiesz wszystkie 17 zgłoszeń ADMIN i je uśrednisz, otrzymasz "typowe" zgłoszenie ADMIN. To punkt odniesienia. Jeśli twoje zgłoszenie jest daleko od centroidu, to anomalia.</p>
+      <p><strong>EN:</strong> The "average person" from a department. If you take all 17 ADMIN tickets and average them, you get the "typical" ADMIN ticket. That's the reference point. If your ticket is far from centroid, it's an anomaly.</p>
+
+      <h3>🚨 Co oznacza "CRITICAL"?</h3>
+      <p><strong>PL:</strong> Bardzo dziwne zgłoszenie. Dystans od centroidu jest wyższy niż: średnia + 1,5× odchylenie standardowe. To znaczy, że ta anomalia jest jeszcze bardziej anomalna niż inne anomalie. Mogą to być błędy klasyfikacji, wyjątkowe problemy lub niespodzianki.</p>
+      <p><strong>EN:</strong> A very weird ticket. Distance from centroid is higher than: average + 1.5× standard deviation. Meaning this anomaly is even more anomalous than other anomalies. Could be classification errors, unique issues, or surprises.</p>
+
+      <h3>📊 Co to znaczy, że ENG ma 0% dokładności?</h3>
+      <p><strong>PL:</strong> Każde z 17 zgłoszeń ENGINEERING jest BLIŻEJ centroidu ADMIN niż centroidu ENGINEERING! To bardzo dziwna sytuacja. Oznacza to jedno z:</p>
+      <ul>
+        <li>Dane są źle etykietowane (zgłoszenia ENGINEERING były oznaczone jako ENG, ale naprawdę są ADMIN)</li>
+        <li>Treści ENGINEERING i ADMIN są bardzo podobne semantycznie</li>
+        <li>ENGINEERING jest bardzo zróżnicowany, a ADMIN jest skupiskiem "typowych" problemów</li>
+      </ul>
+      <p><strong>EN:</strong> Every single ENGINEERING ticket is CLOSER to ADMIN centroid than to ENGINEERING centroid! Very odd situation. Means one of:</p>
+      <ul>
+        <li>Data is mislabeled (ENG tickets were marked as ENG, but truly are ADMIN)</li>
+        <li>ENGINEERING and ADMIN content is very semantically similar</li>
+        <li>ENGINEERING is very diverse, ADMIN is a cluster of "typical" issues</li>
+      </ul>
+
+      <h3>🎯 Czy problemy ID 8, 19, 44 to błędy?</h3>
+      <p><strong>PL:</strong> NIEKONIECZNIE. Anomalia może oznaczać:</p>
+      <ul>
+        <li>✗ Błędna klasyfikacja (zgłoszenie dostało zły label)</li>
+        <li>✓ Wyjątkowy przypadek (naprawdę rzadki problem, ale prawidłowo sklasyfikowany)</li>
+        <li>✓ Kombinacja (np. problemu z wieloma aspektami - hardware + oprogramowanie)</li>
+      </ul>
+      <p>Dlatego warto przejrzeć je ręcznie!</p>
+      <p><strong>EN:</strong> NOT NECESSARILY. Anomaly could mean:</p>
+      <ul>
+        <li>✗ Wrong classification (ticket got wrong label)</li>
+        <li>✓ Unique case (truly rare issue, but correctly classified)</li>
+        <li>✓ Mixed (e.g., multi-aspect problem - hardware + software)</li>
+      </ul>
+      <p>That's why manual review is valuable!</p>
+
+      <h3>💡 Co powinienem zrobić z tymi wynikami?</h3>
+      <p><strong>PL:</strong> 1. Przejrzyj top anomalie (ID 8, 19, 44, 41, 30) — czy są poprawnie sklasyfikowane? 2. Przeanalizuj dlaczego ENG i SEC mają 0% — czy to problem z danymi czy rzeczywistym podobieństwem treści? 3. Rozważ relabelowanie lub zbieranie bardziej zróżnicowanych danych dla ENG i SEC.</p>
+      <p><strong>EN:</strong> 1. Review top anomalies (ID 8, 19, 44, 41, 30) — are they correctly classified? 2. Analyze why ENG and SEC have 0% — data problem or real content similarity? 3. Consider relabeling or collecting more diverse data for ENG and SEC.</p>
+    </section>
+
+    <footer>
+      © 2024 Oracle Vector Analysis • Ready for GitHub Pages
+    </footer>
+  </div>
+
+  <script>
+    // PL: Konfiguracja Chart.js dla ciemnego motywu / EN: Chart.js configuration for dark theme
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = '#2d3748';
+    const chartOptions = {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { position: 'bottom' } }
+    };
+
+    // 1. Rozkład zgłoszeń per dział
+    const ticketsCtx = document.getElementById('ticketsChart')?.getContext('2d');
+    if (ticketsCtx) {
+      new Chart(ticketsCtx, {
+        type: 'bar',
+        data: {
+          labels: ['ADMINISTRATION', 'ENGINEERING', 'SECURITY'],
+          datasets: [{
+            label: 'PL: Liczba zgłoszeń / EN: Number of Tickets',
+            data: [17, 17, 16],
+            backgroundColor: ['#0ea5e9', '#8b5cf6', '#ec4899'],
+            borderRadius: 8,
+            borderSkipped: false
+          }]
+        },
+        options: { ...chartOptions, scales: { y: { beginAtZero: true, max: 18 } } }
+      });
+    }
+
+    // 2. Top anomalie
+    const anomaliesCtx = document.getElementById('anomaliesChart')?.getContext('2d');
+    if (anomaliesCtx) {
+      new Chart(anomaliesCtx, {
+        type: 'bar',
+        data: {
+          labels: ['ID 8', 'ID 19', 'ID 44', 'ID 41', 'ID 30', 'ID 5', 'ID 28', 'ID 39', 'ID 46', 'ID 10'],
+          datasets: [{
+            label: 'PL: Dystans cosine / EN: Cosine Distance',
+            data: [0.5164, 0.5083, 0.4750, 0.4704, 0.4242, 0.4205, 0.4164, 0.4095, 0.4085, 0.4070],
+            backgroundColor: (context) => {
+              const val = context.raw;
+              if (val > 0.46) return '#ef4444';
+              if (val > 0.40) return '#f59e0b';
+              return '#22c55e';
+            },
+            borderRadius: 8,
+            borderSkipped: false
+          }]
+        },
+        options: { ...chartOptions, indexAxis: 'y', scales: { x: { beginAtZero: true, max: 0.55 } } }
+      });
+    }
+
+    // 3. Dokładność klasyfikacji
+    const accuracyCtx = document.getElementById('accuracyChart')?.getContext('2d');
+    if (accuracyCtx) {
+      new Chart(accuracyCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['ADMINISTRATION\n100% ✓', 'ENGINEERING\n0% ✗', 'SECURITY\n0% ✗'],
+          datasets: [{
+            data: [100, 0, 0],
+            backgroundColor: ['#22c55e', '#ef4444', '#ef4444'],
+            borderColor: '#1f2937',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          ...chartOptions,
+          plugins: { ...chartOptions.plugins, datalabels: { color: '#fff' } }
+        }
+      });
+    }
+
+    // 4. Rozkład anomalii (CRITICAL/MODERATE/NORMAL)
+    const anomalyLevelCtx = document.getElementById('anomalyLevelChart')?.getContext('2d');
+    if (anomalyLevelCtx) {
+      new Chart(anomalyLevelCtx, {
+        type: 'pie',
+        data: {
+          labels: ['CRITICAL (4)', 'MODERATE (11)', 'NORMAL (35)'],
+          datasets: [{
+            data: [4, 11, 35],
+            backgroundColor: ['#ef4444', '#f59e0b', '#22c55e'],
+            borderColor: '#1f2937',
+            borderWidth: 2
+          }]
+        },
+        options: chartOptions
+      });
+    }
+
+    // 5. Misclassified vs Correctly Classified
+    const classificationCtx = document.getElementById('classificationChart')?.getContext('2d');
+    if (classificationCtx) {
+      new Chart(classificationCtx, {
+        type: 'bar',
+        data: {
+          labels: ['ADMINISTRATION', 'ENGINEERING', 'SECURITY'],
+          datasets: [
+            {
+              label: 'PL: Poprawnie klasyfikowane / EN: Correctly Classified',
+              data: [17, 0, 0],
+              backgroundColor: '#22c55e'
+            },
+            {
+              label: 'PL: Błędnie klasyfikowane / EN: Misclassified',
+              data: [0, 17, 16],
+              backgroundColor: '#ef4444'
+            }
+          ]
+        },
+        options: {
+          ...chartOptions,
+          scales: { y: { beginAtZero: true, stacked: true, max: 18 }, x: { stacked: true } }
+        }
+      });
+    }
+  </script>
+</body>
+</html>

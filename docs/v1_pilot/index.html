@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oracle Vector Analysis Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg1: #0f172a;
+      --bg2: #111827;
+      --card: #1f2937;
+      --accent: #38bdf8;
+      --accent2: #a855f7;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --critical: #ef4444;
+      --moderate: #f59e0b;
+      --normal: #22c55e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 32px; font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(56,189,248,0.08), transparent 30%),
+                  radial-gradient(circle at 80% 0%, rgba(168,85,247,0.08), transparent 25%),
+                  var(--bg1);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    header { background: linear-gradient(135deg, #0ea5e9, #8b5cf6); padding: 32px; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.35); margin-bottom: 24px; }
+    h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: 0.4px; }
+    .subtitle { margin: 0; color: #e0f2fe; font-size: 15px; }
+    .nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 24px; }
+    .nav-card { background: var(--card); border: 1px solid #1f2937; border-radius: 12px; padding: 20px; text-decoration: none; color: var(--text); transition: all 0.3s; cursor: pointer; }
+    .nav-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(56,189,248,0.2); border-color: var(--accent); }
+    .nav-icon { font-size: 28px; margin-bottom: 8px; }
+    .nav-title { font-size: 16px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
+    .nav-desc { font-size: 13px; color: var(--muted); }
+    .nav-status { display: inline-block; margin-top: 10px; padding: 4px 10px; border-radius: 6px; font-size: 12px; background: rgba(34,197,94,0.2); color: #bbf7d0; }
+    .nav-status.wip { background: rgba(245,158,11,0.2); color: #fde68a; }
+    section { background: var(--card); border: 1px solid #1f2937; border-radius: 14px; padding: 24px; margin-top: 24px; box-shadow: 0 12px 30px rgba(0,0,0,0.25); }
+    h2 { margin: 0 0 16px; font-size: 22px; color: var(--accent); }
+    h3 { margin: 18px 0 12px; font-size: 16px; color: var(--accent2); }
+    p { color: var(--muted); margin: 0 0 12px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+    .stat { background: linear-gradient(135deg, rgba(56,189,248,0.12), rgba(168,85,247,0.12)); border: 1px solid rgba(56,189,248,0.3); padding: 18px; border-radius: 12px; text-align: center; }
+    .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; }
+    .stat .value { font-size: 32px; font-weight: 700; color: var(--accent); margin: 8px 0; }
+    .stat .detail { font-size: 12px; color: #94a3b8; }
+    .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 20px; margin-top: 20px; }
+    .chart-wrap { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 10px; }
+    canvas { display: block; }
+    .scenarios { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 16px; }
+    .scenario-box { background: linear-gradient(135deg, rgba(56,189,248,0.1), rgba(168,85,247,0.1)); border: 1px solid rgba(56,189,248,0.3); padding: 16px; border-radius: 10px; }
+    .scenario-box h4 { margin: 0 0 8px; color: var(--accent); }
+    .scenario-box p { margin: 0 0 12px; font-size: 13px; }
+    .btn { display: inline-block; padding: 8px 16px; background: linear-gradient(135deg, #0ea5e9, #8b5cf6); border: none; border-radius: 8px; color: white; text-decoration: none; cursor: pointer; font-size: 13px; transition: all 0.3s; }
+    .btn:hover { transform: scale(1.05); }
+    footer { text-align: center; color: var(--muted); margin-top: 40px; padding: 20px; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { padding: 10px 12px; text-align: left; }
+    th { background: rgba(56,189,248,0.12); border-bottom: 1px solid rgba(56,189,248,0.3); }
+    tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+    .badge { padding: 4px 10px; border-radius: 999px; font-weight: 600; font-size: 11px; display: inline-block; }
+    .critical { background: rgba(239,68,68,0.2); color: #fecaca; }
+    .moderate { background: rgba(245,158,11,0.2); color: #fde68a; }
+    .normal { background: rgba(34,197,94,0.2); color: #bbf7d0; }
+    .success { background: rgba(34,197,94,0.2); color: #bbf7d0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🚀 Oracle Vector Analysis Dashboard</h1>
+      <p class="subtitle">PL: Kompletna analiza wektorów i klasyfikacji zgłoszeń • EN: Comprehensive vector and ticket classification analysis</p>
+    </header>
+
+    <!-- SCENARIUSZE -->
+    <section>
+      <h2>📋 Dostępne Scenariusze / Available Scenarios</h2>
+      <p>PL: Przejdź do szczegółowej analizy wybranego scenariusza. EN: Navigate to detailed analysis of your chosen scenario.</p>
+      <div class="nav">
+        <a href="scenarioA_report.html" class="nav-card">
+          <div class="nav-icon">🎯</div>
+          <div class="nav-title">Scenario A: Anomaly Detection</div>
+          <div class="nav-desc">PL: Wykrywanie anomalii i błędnych klasyfikacji. EN: Anomaly & misclassification detection.</div>
+          <div class="nav-status">✓ Completed</div>
+        </a>
+        <a href="scenarioB_report.html" class="nav-card">
+          <div class="nav-icon">🔍</div>
+          <div class="nav-title">Scenario B: Similarity Search</div>
+          <div class="nav-desc">PL: Semantic wyszukiwanie podobnych zgłoszeń. EN: Semantic similarity search for tickets.</div>
+          <div class="nav-status">✓ Completed</div>
+        </a>
+        <a href="scenarioC_report.html" class="nav-card">
+          <div class="nav-icon">📊</div>
+          <div class="nav-title">Scenario C: Clustering</div>
+          <div class="nav-desc">PL: Analiza klastrów (unsupervised). EN: Unsupervised cluster analysis.</div>
+          <div class="nav-status">✓ Completed</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- GLOBAL STATS -->
+    <section>
+      <h2>📊 Ogólne Statystyki / Global Statistics</h2>
+      <div class="grid">
+        <div class="stat">
+          <div class="label">Całość Zgłoszeń</div>
+          <div class="value">50</div>
+          <div class="detail">vectorized tickets</div>
+        </div>
+        <div class="stat">
+          <div class="label">Departamenty</div>
+          <div class="value">3</div>
+          <div class="detail">ADMIN, ENG, SEC</div>
+        </div>
+        <div class="stat">
+          <div class="label">Anomalie</div>
+          <div class="value">18</div>
+          <div class="detail">36% of tickets</div>
+        </div>
+        <div class="stat">
+          <div class="label">Błędne Klasyfikacje</div>
+          <div class="value">33</div>
+          <div class="detail">66% misclassified</div>
+        </div>
+        <div class="stat">
+          <div class="label">Model Embedding</div>
+          <div class="value">384-D</div>
+          <div class="detail">all-MiniLM-L12-v2</div>
+        </div>
+        <div class="stat">
+          <div class="label">Metryka Odległości</div>
+          <div class="value">COSINE</div>
+          <div class="detail">0 = identical, 1 = different</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 16px; padding: 14px; border-radius: 10px; background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.25);">
+        <strong>Zakres danych / Dataset scope:</strong>
+        <ul style="margin: 8px 0 0 18px; color: var(--muted);">
+          <li>50 ticketów: ADMIN 17 • ENG 17 • SEC 16</li>
+          <li>Embedding: all-MiniLM-L12-v2 (384-D) w Oracle 23ai</li>
+          <li>Scenariusze A/B/C działają na tym samym zbiorze (statyczne wyniki)</li>
+          <li>Brak danych osobowych; syntetyczne opisy incydentów</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- OVERVIEW CHARTS -->
+    <section>
+      <h2>📈 Przegląd / Overview</h2>
+      <div class="charts">
+        <div class="chart-wrap">
+          <h3>Distribution by Department</h3>
+          <canvas id="deptChart"></canvas>
+        </div>
+        <div class="chart-wrap">
+          <h3>Classification Status</h3>
+          <canvas id="classChart"></canvas>
+        </div>
+        <div class="chart-wrap">
+          <h3>Anomaly Severity</h3>
+          <canvas id="severityChart"></canvas>
+        </div>
+        <div class="chart-wrap">
+          <h3>Accuracy by Department</h3>
+          <canvas id="accuracyChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCENARIO A DETAILS -->
+    <section>
+      <h2>🎯 Scenario A: Anomaly Detection — Quick View</h2>
+      <p>PL: Najważniejsze wyniki z analizy anomalii. EN: Key findings from anomaly analysis.</p>
+      
+      <h3>Top 5 Anomalii / Top 5 Anomalies</h3>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Dept</th><th>Distance</th><th>Severity</th><th>Level</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>8</td><td>ADMIN</td><td>0.5164</td><td>LOW</td><td><span class="badge critical">CRITICAL</span></td></tr>
+          <tr><td>19</td><td>ENG</td><td>0.5083</td><td>HIGH</td><td><span class="badge critical">CRITICAL</span></td></tr>
+          <tr><td>44</td><td>ADMIN</td><td>0.4750</td><td>LOW</td><td><span class="badge critical">CRITICAL</span></td></tr>
+          <tr><td>41</td><td>ADMIN</td><td>0.4704</td><td>LOW</td><td><span class="badge critical">CRITICAL</span></td></tr>
+          <tr><td>30</td><td>SEC</td><td>0.4242</td><td>CRITICAL</td><td><span class="badge moderate">MODERATE</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Dokładność per Dział / Accuracy by Department</h3>
+      <table>
+        <thead>
+          <tr><th>Department</th><th>Total</th><th>Correct</th><th>Misclassified</th><th>Accuracy</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>ADMINISTRATION</td><td>17</td><td>17</td><td>0</td><td><span class="badge success">100%</span></td></tr>
+          <tr><td>ENGINEERING</td><td>17</td><td>0</td><td>17</td><td><span class="badge critical">0%</span></td></tr>
+          <tr><td>SECURITY</td><td>16</td><td>0</td><td>16</td><td><span class="badge critical">0%</span></td></tr>
+        </tbody>
+      </table>
+
+      <p style="margin-top: 16px; color: #f59e0b;"><strong>⚠️ Key Insight:</strong> PL: Centroidy departamentów są semantycznie bardzo zbliżone, co powoduje, że ENG i SEC są przyciągane do centroidu ADMIN. EN: Department centroids are semantically very close, causing ENG and SEC to be attracted to ADMIN centroid.</p>
+
+      <div style="margin-top: 20px;">
+        <a href="scenarioA_report.html" class="btn">→ Pełny Raport Scenariusza A / Full Scenario A Report</a>
+      </div>
+    </section>
+
+    <!-- PLAIN LANGUAGE EXPLANATIONS -->
+    <section>
+      <h2>🗣️ Wyjaśnienia dla Każdego / Explanations in Plain Language</h2>
+      <p>PL: Zrozumienie bez matematyki i technicznych terminów. EN: Understanding without math and technical jargon.</p>
+      
+      <div class="scenarios">
+        <div class="scenario-box">
+          <h4>❓ Co to "Anomalia"?</h4>
+          <p><strong>PL:</strong> Zgłoszenie, które wygląda inaczej niż inne w swoim dziale. Jak owca czarna w stadzie białych. Może to być błąd w klasyfikacji lub naprawdę wyjątkowy problem.</p>
+          <p><strong>EN:</strong> A ticket that looks different from others in its department. Like a black sheep in a white flock. Could be a classification error or a truly unique issue.</p>
+        </div>
+        <div class="scenario-box">
+          <h4>📏 Co znaczy "Distance" (Dystans)?</h4>
+          <p><strong>PL:</strong> Im wyższa liczba, tym bardziej zgłoszenie różni się semantycznie od típowych w dziale. 0 = identyczne, 1 = kompletnie inne. Przykład: 0.5164 = ZA BARDZO RÓŻNE.</p>
+          <p><strong>EN:</strong> Higher number = ticket is semantically more different from typical ones in the department. 0 = identical, 1 = completely different. Example: 0.5164 = TOO DIFFERENT.</p>
+        </div>
+        <div class="scenario-box">
+          <h4>🎯 Co to "Centroid"?</h4>
+          <p><strong>PL:</strong> "Średni" zgłoszenie danego departamentu. Jeśli wezmiesz wszystkie zgłoszenia ENGINEERING i je uśrednisz, dostaniesz "typowe" zgłoszenie ENG. To punkt odniesienia.</p>
+          <p><strong>EN:</strong> The "average" ticket for a department. If you take all ENGINEERING tickets and average them, you get the "typical" ENG ticket. It's a reference point.</p>
+        </div>
+        <div class="scenario-box">
+          <h4>🚨 Co oznacza 0% dokładności w ENG/SEC?</h4>
+          <p><strong>PL:</strong> Każde z 17 zgłoszeń ENG jest bliżej centroidu ADMIN niż centroidu ENG! Znaczy to, że albo dane są źle etykietowane, albo treści ENG/SEC są bardzo podobne do ADMIN.</p>
+          <p><strong>EN:</strong> Every single ENG ticket is closer to the ADMIN centroid than to the ENG centroid! This means either data is mislabeled or ENG/SEC content is very similar to ADMIN.</p>
+        </div>
+        <div class="scenario-box">
+          <h4>📊 Co to "CRITICAL vs MODERATE vs NORMAL"?</h4>
+          <p><strong>PL:</strong> Poziom nietypowości. CRITICAL = bardzo anomalna (dystans > średnia + 1.5×σ). MODERATE = mniej anomalna. NORMAL = typowa dla działu.</p>
+          <p><strong>EN:</strong> Levels of unusualness. CRITICAL = highly anomalous (distance > mean + 1.5×σ). MODERATE = less anomalous. NORMAL = typical for department.</p>
+        </div>
+        <div class="scenario-box">
+          <h4>💡 Czy to oznacza błędy w systemie?</h4>
+          <p><strong>PL:</strong> NIE ZAWSZE. Może to oznaczać, że dane treningowe zawierają podobne treści w kilku działach. To informacja dla zespołu QA do przejrzenia. Jedno nie wyklucza drugiego.</p>
+          <p><strong>EN:</strong> NOT NECESSARILY. It may mean that training data contains similar content across departments. This is info for QA team to review. One doesn't exclude the other.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCENARIO DESCRIPTIONS -->
+    <section>
+      <h2>📚 Czym Są Scenariusze / What Are Scenarios</h2>
+      <div class="scenarios">
+        <div class="scenario-box">
+          <h4>🎯 Scenario A: Anomaly Detection</h4>
+          <p><strong>PL:</strong> "Które zgłoszenia są dziwne w swoim dziale?" — Szukamy outlierów. Przydatne do: QA, weryfikacji etykiet, odkrywania wyjątkowych problemów.</p>
+          <p><strong>EN:</strong> "Which tickets are weird in their department?" — We hunt for outliers. Useful for: QA, label verification, discovering unique issues.</p>
+          <p style="margin-top: 8px;"><span class="badge success">✓ Ready</span> <a href="scenarioA_report.html" class="btn" style="margin-left: 10px;">Open Report</a></p>
+        </div>
+        <div class="scenario-box">
+          <h4>🔍 Scenario B: Similarity Search</h4>
+          <p><strong>PL:</strong> "Które zgłoszenia są do siebie najbardziej podobne?" — Szukamy duplikatów lub zgłoszeń z tym samym problemem. Przydatne do: deduplicacji, znalezienia precedensu, tworzenia bazy rozwiązań.</p>
+          <p><strong>EN:</strong> "Which tickets are most similar to each other?" — We hunt for duplicates or same-issue tickets. Useful for: deduplication, finding precedent, building solution database.</p>
+          <p style="margin-top: 8px;"><span class="badge success">✓ Ready</span> <a href="scenarioB_report.html" class="btn" style="margin-left: 10px;">Open Report</a></p>
+        </div>
+        <div class="scenario-box">
+          <h4>📊 Scenario C: Clustering Analysis</h4>
+          <p><strong>PL:</strong> "Jakie naturalne grupy problemów się tworzą?" — Znajdujemy główne tematy bez polegania na istniejących etykietach. Przydatne do: odkrywania nieznanych wzorców, reorganizacji działów, automatycznej kategoryzacji.</p>
+          <p><strong>EN:</strong> "What natural groups of issues form?" — We find main topics without relying on existing labels. Useful for: discovering unknown patterns, department reorganization, auto-categorization.</p>
+          <p style="margin-top: 8px;"><span class="badge success">✓ Ready</span> <a href="scenarioC_report.html" class="btn" style="margin-left: 10px;">Open Report</a></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- KEY INSIGHTS (Rearranged after explanations)
+    <section>
+      <h2>💡 Kluczowe Obserwacje / Key Insights</h2>
+      <div class="scenarios">
+        <div class="scenario-box">
+          <h4>🚨 Problem Klasyfikacji</h4>
+          <p>Dwa z trzech departamentów (ENG, SEC) mają 0% dokładności semantycznej. Zgłoszenia są bliżej centroidu ADMIN niż swojego departamentu.</p>
+        </div>
+        <div class="scenario-box">
+          <h4>🔗 Centroidy Zbliżone</h4>
+          <p>Dystanse między centroidami < 0.25, co sugeruje wspólne cechy semantyczne między działami. Możliwe: źle etykietowane dane lub rzeczywiste podobieństwo treści.</p>
+        </div>
+        <div class="scenario-box">
+          <h4>📊 Rozkład Anomalii</h4>
+          <p>18 anomalii (36% danych) z dystansem > średnia. 4 CRITICAL, 11 MODERATE, 35 Normal. Warto przejrzeć etykiety top anomalii.</p>
+        </div>
+        <div class="scenario-box">
+          <h4>✅ ADMIN Spójny</h4>
+          <p>Jedynie ADMINISTRATION ma 100% poprawną klasyfikację semantyczną. Departament jest semantycznie spójny i wyróżnia się od pozostałych.</p>
+        </div>
+        <div class="scenario-box">
+          <h4>🎯 Recommendation</h4>
+          <p>PL: Przejrzeć etykiety ENG i SEC. Rozważyć relabelowanie lub zbieranie bardziej zróżnicowanych danych.</p>
+        </div>
+        <div class="scenario-box">
+          <h4>📈 Next Steps</h4>
+          <p>Scenario B (similarity search) — znajdowanie naprawdę podobnych zgłoszeń dla każdego departamentu.</p>
+        </div>
+      </div>
+    </section> -->
+
+    <!-- KEY INSIGHTS - moved after explanations -->
+    <section>
+      <h2>💡 Kluczowe Obserwacje / Key Insights</h2>
+      <div class="scenarios">
+        <div class="scenario-box">
+          <h4>🚨 Problem Klasyfikacji</h4>
+          <p>Dwa z trzech departamentów (ENG, SEC) mają 0% dokładności semantycznej. Zgłoszenia są bliżej centroidu ADMIN niż swojego departamentu.</p>
+        </div>
+        <div class="scenario-box">
+          <h4>🔗 Centroidy Zbliżone</h4>
+          <p>Dystanse między centroidami < 0.25, co sugeruje wspólne cechy semantyczne między działami. Możliwe: źle etykietowane dane lub rzeczywiste podobieństwo treści.</p>
+        </div>
+        <div class="scenario-box">
+          <h4>📊 Rozkład Anomalii</h4>
+          <p>18 anomalii (36% danych) z dystansem > średnia. 4 CRITICAL, 11 MODERATE, 35 Normal. Warto przejrzeć etykiety top anomalii.</p>
+        </div>
+        <div class="scenario-box">
+          <h4>✅ ADMIN Spójny</h4>
+          <p>Jedynie ADMINISTRATION ma 100% poprawną klasyfikację semantyczną. Departament jest semantycznie spójny i wyróżnia się od pozostałych.</p>
+        </div>
+        <div class="scenario-box">
+          <h4>🎯 Recommendation</h4>
+          <p>PL: Przejrzeć etykiety ENG i SEC. Rozważyć relabelowanie lub zbieranie bardziej zróżnicowanych danych.</p>
+        </div>
+        <div class="scenario-box">
+          <h4>📈 Next Steps</h4>
+          <p>Scenario B (similarity search) — znajdowanie naprawdę podobnych zgłoszeń dla każdego departamentu.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- METHODOLOGY -->
+    <section>
+      <h2>🔬 Metodyka / Methodology</h2>
+      <h3>PL: Ogólne Podejście</h3>
+      <ol style="margin-left: 20px; color: var(--muted);">
+        <li><strong>Wektoryzacja:</strong> Konwersja tekstów zgłoszeń do 384-wymiarowych wektorów (ONNX model all-MiniLM-L12-v2)</li>
+        <li><strong>Centroidy:</strong> Obliczenie średniego wektora dla każdego departamentu</li>
+        <li><strong>Anomalie:</strong> Identyfikacja zgłoszeń z dużą odległością (COSINE) od centroidu</li>
+        <li><strong>Klasyfikacja:</strong> Porównanie rzeczywistego departamentu z najbliższym centroidem</li>
+        <li><strong>Wizualizacja:</strong> Interaktywne wykresy Chart.js + tabele HTML</li>
+      </ol>
+      <h3>EN: General Approach</h3>
+      <ol style="margin-left: 20px; color: var(--muted);">
+        <li><strong>Vectorization:</strong> Convert ticket texts to 384-D vectors (ONNX all-MiniLM-L12-v2)</li>
+        <li><strong>Centroids:</strong> Calculate mean vector per department</li>
+        <li><strong>Anomalies:</strong> Identify tickets with high COSINE distance from centroid</li>
+        <li><strong>Classification:</strong> Compare actual department vs closest centroid</li>
+        <li><strong>Visualization:</strong> Interactive Chart.js charts + HTML tables</li>
+      </ol>
+    </section>
+
+    <footer>
+      © 2024 Oracle Vector Analysis Dashboard • Built with Chart.js & HTML5 • Ready for GitHub Pages
+    </footer>
+  </div>
+
+  <script>
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = '#2d3748';
+    const chartOptions = {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { position: 'bottom' } }
+    };
+
+    // 1. Department Distribution
+    const deptCtx = document.getElementById('deptChart')?.getContext('2d');
+    if (deptCtx) {
+      new Chart(deptCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['ADMINISTRATION (17)', 'ENGINEERING (17)', 'SECURITY (16)'],
+          datasets: [{
+            data: [17, 17, 16],
+            backgroundColor: ['#0ea5e9', '#8b5cf6', '#ec4899'],
+            borderColor: '#1f2937',
+            borderWidth: 2
+          }]
+        },
+        options: chartOptions
+      });
+    }
+
+    // 2. Classification Status
+    const classCtx = document.getElementById('classChart')?.getContext('2d');
+    if (classCtx) {
+      new Chart(classCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Correctly\nClassified', 'Misclassified'],
+          datasets: [{
+            label: 'Number of Tickets',
+            data: [17, 33],
+            backgroundColor: ['#22c55e', '#ef4444'],
+            borderRadius: 8,
+            borderSkipped: false
+          }]
+        },
+        options: { ...chartOptions, scales: { y: { beginAtZero: true, max: 35 } } }
+      });
+    }
+
+    // 3. Anomaly Severity
+    const severityCtx = document.getElementById('severityChart')?.getContext('2d');
+    if (severityCtx) {
+      new Chart(severityCtx, {
+        type: 'pie',
+        data: {
+          labels: ['CRITICAL (4)', 'MODERATE (11)', 'NORMAL (35)'],
+          datasets: [{
+            data: [4, 11, 35],
+            backgroundColor: ['#ef4444', '#f59e0b', '#22c55e'],
+            borderColor: '#1f2937',
+            borderWidth: 2
+          }]
+        },
+        options: chartOptions
+      });
+    }
+
+    // 4. Accuracy by Department
+    const accuracyCtx = document.getElementById('accuracyChart')?.getContext('2d');
+    if (accuracyCtx) {
+      new Chart(accuracyCtx, {
+        type: 'bar',
+        data: {
+          labels: ['ADMINISTRATION', 'ENGINEERING', 'SECURITY'],
+          datasets: [{
+            label: 'Semantic Accuracy %',
+            data: [100, 0, 0],
+            backgroundColor: (context) => {
+              const val = context.raw;
+              if (val >= 80) return '#22c55e';
+              if (val >= 40) return '#f59e0b';
+              return '#ef4444';
+            },
+            borderRadius: 8,
+            borderSkipped: false
+          }]
+        },
+        options: { ...chartOptions, scales: { y: { beginAtZero: true, max: 110 } } }
+      });
+    }
+  </script>
+</body>
+</html>

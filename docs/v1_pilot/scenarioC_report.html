@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scenario C: Clustering Analysis</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg1: #0f172a;
+      --bg2: #111827;
+      --card: #1f2937;
+      --accent: #38bdf8;
+      --accent2: #a855f7;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 32px; font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 15% 20%, rgba(56,189,248,0.08), transparent 30%),
+                  radial-gradient(circle at 80% 0%, rgba(168,85,247,0.08), transparent 25%),
+                  var(--bg1);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    header { background: linear-gradient(135deg, #0ea5e9, #8b5cf6); padding: 32px; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.35); margin-bottom: 24px; }
+    h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: 0.4px; }
+    .subtitle { margin: 0; color: #e0f2fe; font-size: 15px; }
+    nav { margin-top: 16px; }
+    nav a { color: #e0f2fe; text-decoration: none; margin-right: 14px; font-size: 13px; }
+    section { background: var(--card); border: 1px solid #1f2937; border-radius: 14px; padding: 24px; margin-top: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.25); }
+    h2 { margin: 0 0 16px; font-size: 22px; color: var(--accent); }
+    h3 { margin: 18px 0 12px; font-size: 16px; color: var(--accent2); }
+    p { color: var(--muted); margin: 0 0 12px; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+    .card { background: linear-gradient(135deg, rgba(56,189,248,0.12), rgba(168,85,247,0.12)); border: 1px solid rgba(56,189,248,0.3); padding: 18px; border-radius: 12px; }
+    .card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; }
+    .card .value { font-size: 28px; font-weight: 700; color: var(--accent); margin: 6px 0; }
+    .card .detail { font-size: 12px; color: #cbd5e1; }
+    .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 18px; margin-top: 12px; }
+    .chart-wrap { background: rgba(0,0,0,0.3); padding: 14px; border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+    th, td { padding: 10px 12px; text-align: left; }
+    th { background: rgba(56,189,248,0.12); border-bottom: 1px solid rgba(56,189,248,0.3); color: #e5e7eb; }
+    tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+    .badge { padding: 4px 10px; border-radius: 999px; font-weight: 600; font-size: 11px; display: inline-block; }
+    .good { background: rgba(34,197,94,0.2); color: #bbf7d0; }
+    .warn { background: rgba(245,158,11,0.2); color: #fde68a; }
+    .bad { background: rgba(239,68,68,0.2); color: #fecaca; }
+    .explain { background: linear-gradient(135deg, rgba(56,189,248,0.08), rgba(168,85,247,0.08)); border: 1px solid rgba(56,189,248,0.25); padding: 16px; border-radius: 12px; margin-top: 12px; }
+    ul { margin: 0 0 12px 18px; color: var(--muted); }
+    footer { text-align: center; color: var(--muted); margin-top: 24px; padding: 16px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📊 Scenario C: Analiza Klastrowania / Clustering Analysis</h1>
+      <p class="subtitle">PL: Próba klastrowania zgłoszeń bez etykiet — wyniki pokazują jeden dominujący klaster. EN: Unsupervised clustering attempt — all points collapse into one cluster.</p>
+      <nav>
+        <a href="index.html">← Dashboard</a>
+        <a href="scenarioA_report.html">Scenario A</a>
+        <a href="scenarioB_report.html">Scenario B</a>
+      </nav>
+    </header>
+
+    <section>
+      <h2>Podsumowanie / Summary</h2>
+      <div class="summary">
+        <div class="card">
+          <div class="label">Łącznie Zgłoszeń / Tickets</div>
+          <div class="value">50</div>
+          <div class="detail">ADMIN 17 • ENG 17 • SEC 16</div>
+        </div>
+        <div class="card">
+          <div class="label">Konfiguracja K</div>
+          <div class="value">k = 3</div>
+          <div class="detail">Inicjalizacja: centroidy departamentów • EN: Init using department centroids</div>
+        </div>
+        <div class="card">
+          <div class="label">Dominujący Klaster</div>
+          <div class="value">100%</div>
+          <div class="detail">Wszystkie 50 próbek → klaster oparty o centroid ADMIN • EN: All 50 samples pulled to ADMIN-like cluster</div>
+        </div>
+        <div class="card">
+          <div class="label">Separacja Klastów</div>
+          <div class="value">Bardzo niska</div>
+          <div class="detail">Centroidy prawie zbieżne, brak rozdzielności • EN: Centroids nearly overlapping, no separation</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Wizualizacje / Visualizations</h2>
+      <div class="charts">
+        <div class="chart-wrap">
+          <h3>Rozkład Klastów / Cluster Distribution</h3>
+          <canvas id="clusterPie"></canvas>
+        </div>
+        <div class="chart-wrap">
+          <h3>Przypisanie Działów → Klastrow / Dept → Cluster Mapping</h3>
+          <canvas id="deptCluster"></canvas>
+        </div>
+        <div class="chart-wrap">
+          <h3>Śr. odległość do centroidu / Avg Distance to Centroid</h3>
+          <canvas id="centroidDist"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Podsumowanie Klastrow / Cluster Summary</h2>
+      <table>
+        <thead>
+          <tr><th>Klaster</th><th>Rozmiar</th><th>Dominujący departament</th><th>Opis</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cluster 1 (ADMIN-like)</td>
+            <td>50</td>
+            <td>ADMIN / ENG / SEC</td>
+            <td>Wszystkie punkty wciągnięte do jednego centroidu — brak separacji semantycznej. EN: All points pulled into one centroid — no semantic separation.</td>
+          </tr>
+          <tr>
+            <td>Cluster 2 (ENG-like)</td>
+            <td>0</td>
+            <td>—</td>
+            <td>Nieużyty: klaster nigdy nie przyciągnął punktów (centroid zbieżny z klastrem 1). EN: Unused, centroid overlapped with cluster 1.</td>
+          </tr>
+          <tr>
+            <td>Cluster 3 (SEC-like)</td>
+            <td>0</td>
+            <td>—</td>
+            <td>Nieużyty: brak rozdzielności względem klastrów 1/2. EN: Unused, no separation vs clusters 1/2.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Przypisanie Działów / Department Assignment</h3>
+      <table>
+        <thead>
+          <tr><th>Dział</th><th>Liczba zgłoszeń</th><th>Przypisane do Cluster 1</th><th>Przypisane do Cluster 2</th><th>Przypisane do Cluster 3</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>ADMINISTRATION</td><td>17</td><td>17</td><td>0</td><td>0</td></tr>
+          <tr><td>ENGINEERING</td><td>17</td><td>17</td><td>0</td><td>0</td></tr>
+          <tr><td>SECURITY</td><td>16</td><td>16</td><td>0</td><td>0</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Wyjaśnienia w Prostym Języku / Plain Language</h2>
+      <div class="explain">
+        <strong>Co się stało?</strong><br>
+        Kiedy próbujemy podzielić dane na 3 klastry (k=3) korzystając z wektorów semantycznych, wszystkie 50 zgłoszeń trafia do jednego klastru. To znaczy, że model nie widzi wystarczającej różnicy między grupami — treści są za blisko siebie.<br>
+        <strong>EN:</strong> With k=3, all 50 tickets collapse into a single cluster, meaning the model sees no meaningful separation between groups.
+      </div>
+      <div class="explain">
+        <strong>Dlaczego?</strong><br>
+        <ul>
+          <li>Centroidy departamentów są niemal zbieżne (bardzo małe odległości między nimi). / EN: Department centroids are nearly overlapping.</li>
+          <li>Opisy ENG i SEC są semantycznie podobne do ADMIN (np. ogólne słownictwo operacyjne). / EN: ENG/SEC wording is semantically close to ADMIN.</li>
+          <li>Brak wyróżniających słów/tematów w opisach ENG/SEC, które oddaliłyby je od ADMIN. / EN: Few distinctive terms to pull ENG/SEC away from ADMIN.</li>
+        </ul>
+      </div>
+      <div class="explain">
+        <strong>Co robić dalej?</strong><br>
+        <ul>
+          <li>Wzbogacić dane: dodać bardziej techniczne słownictwo dla ENG, bardziej bezpieczeństwa dla SEC. / EN: Add more technical vocab for ENG, security vocab for SEC.</li>
+          <li>Zwiększyć różnorodność przykładów per dział (więcej unikalnych opisów problemów). / EN: Increase variety of examples per department.</li>
+          <li>Rozważyć model domenowy (np. fine-tuning lub inny embedding specjalistyczny). / EN: Consider domain-tuned embeddings.</li>
+          <li>Sprawdzić etykiety: czy część zgłoszeń jest błędnie przypisana do działów? / EN: Recheck labels for misassignments.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>Metodyka / Methodology</h2>
+      <ol style="color: var(--muted); margin-left: 18px;">
+        <li><strong>K = 3</strong> (cel: 3 grupy tematyczne, bez użycia etykiet) / EN: target 3 topic clusters, label-free.</li>
+        <li><strong>Inicjalizacja centroidów:</strong> użyto centroidów departamentów (ADMIN/ENG/SEC) obliczonych na wektorach 384-D. / EN: init centroids = dept means.</li>
+        <li><strong>Przypisanie:</strong> każdy punkt → najbliższy centroid (COSINE distance). / EN: assign to nearest centroid.</li>
+        <li><strong>Wynik:</strong> wszystkie punkty przypisane do centroidu ADMIN → brak rozdzielności klastrów. / EN: all points to ADMIN centroid → no separation.</li>
+        <li><strong>Interpretacja:</strong> potrzeba bardziej zróżnicowanych opisów lub modelu domenowego, by uzyskać separację. / EN: need richer, more distinct text or domain-tuned model.</li>
+      </ol>
+    </section>
+
+    <footer>
+      Scenario C: Clustering Analysis • Chart.js 4.4.0 • Model: all-MiniLM-L12-v2 (384-D) • Metric: COSINE • Updated: 2024-12-14
+    </footer>
+  </div>
+
+  <script>
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = '#2d3748';
+    const baseOpts = { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } };
+
+    // 1. Cluster distribution (all into cluster 1)
+    const clusterPie = document.getElementById('clusterPie')?.getContext('2d');
+    if (clusterPie) {
+      new Chart(clusterPie, {
+        type: 'doughnut',
+        data: {
+          labels: ['Cluster 1 (ADMIN-like)', 'Cluster 2 (ENG-like)', 'Cluster 3 (SEC-like)'],
+          datasets: [{
+            data: [50, 0, 0],
+            backgroundColor: ['#0ea5e9', '#8b5cf6', '#ec4899'],
+            borderWidth: 2,
+            borderColor: '#0f172a'
+          }]
+        },
+        options: baseOpts
+      });
+    }
+
+    // 2. Dept -> Cluster mapping (all to cluster 1)
+    const deptCluster = document.getElementById('deptCluster')?.getContext('2d');
+    if (deptCluster) {
+      new Chart(deptCluster, {
+        type: 'bar',
+        data: {
+          labels: ['ADMIN', 'ENGINEERING', 'SECURITY'],
+          datasets: [
+            { label: 'Cluster 1', data: [17, 17, 16], backgroundColor: '#0ea5e9' },
+            { label: 'Cluster 2', data: [0, 0, 0], backgroundColor: '#8b5cf6' },
+            { label: 'Cluster 3', data: [0, 0, 0], backgroundColor: '#ec4899' }
+          ]
+        },
+        options: { ...baseOpts, scales: { y: { beginAtZero: true, max: 20 } } }
+      });
+    }
+
+    // 3. Avg distance to own centroid (from Scenario A stats)
+    const centroidDist = document.getElementById('centroidDist')?.getContext('2d');
+    if (centroidDist) {
+      new Chart(centroidDist, {
+        type: 'bar',
+        data: {
+          labels: ['ADMIN', 'ENGINEERING', 'SECURITY'],
+          datasets: [{
+            label: 'Avg distance to centroid',
+            data: [0.3181, 0.3091, 0.2620],
+            backgroundColor: '#22c55e'
+          }]
+        },
+        options: { ...baseOpts, scales: { y: { beginAtZero: true, max: 0.6 } } }
+      });
+    }
+  </script>
+</body>
+</html>
